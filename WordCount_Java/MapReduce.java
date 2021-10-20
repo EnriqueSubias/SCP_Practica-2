@@ -8,7 +8,6 @@ abstract class MapReduce {
 	private String InputPath;
 	private String OutputPath;
 	private int nfiles;
-	private int nreducers;
 
 	private Vector<Map> Mappers = new Vector<Map>();
 	private Vector<Reduce> Reducers = new Vector<Reduce>();
@@ -17,7 +16,6 @@ abstract class MapReduce {
 		SetInputPath("");
 		SetOutputPath("");
 	}
-
 
 	// Constructor MapReduce: número de reducers a utilizar. Los parámetros de
 	// directorio/fichero entrada
@@ -48,7 +46,6 @@ abstract class MapReduce {
 	}
 
 	public void SetReducers(int nReducers) {
-		System.out.println("HHHHHH" + nReducers);
 		for (int x = 0; x < nReducers; x++) {
 			AddReduce(new Reduce(this, OutputPath + "/result.r" + (x + 1)));
 		}
@@ -60,12 +57,28 @@ abstract class MapReduce {
 
 		if (Split(InputPath) != Error.COk)
 			Error.showError("MapReduce::Run-Error Split");
+			
 
 		// if (Maps() != Error.COk)
 		// Error.showError("MapReduce::Run-Error Map");
 
 		// if (Suffle() != Error.COk)
 		// Error.showError("MapReduce::Run-Error Merge");
+		Thread thr[];
+		thr = new Thread[Reducers.size()];
+
+		for (int i = 0; i < Reducers.size(); i++) {
+			thr[i] = new Thread(new Fases_Concurentes_2(i));
+			thr[i].start();
+		}
+
+		for (int i = 0; i < Reducers.size(); i++) {
+			try {
+				thr[i].join();
+			} catch (InterruptedException e) { // Fin //
+			}
+			System.out.println("Thread number " + thr[i].getId() + " is alive: " + thr[i].isAlive());
+		}
 
 		// if (Reduces() != Error.COk)
 		// Error.showError("MapReduce::Run-Error Reduce");
@@ -84,29 +97,43 @@ abstract class MapReduce {
 		return (Error.COk);
 	}
 
-	public class splitObject implements Runnable {
+	public class Fases_Concurentes_1 implements Runnable {
 		Map map;
 		String splitPath;
 
-		public splitObject(Map map, String splitPath) {
+		public Fases_Concurentes_1(Map map, String splitPath) {
 			this.map = map;
 			this.splitPath = splitPath;
 		}
 
 		@Override
 		public void run() {
-			System.out.println("***** Test ****");
+			// System.out.println("***** Test ****");
 			// System.out.println("HHHHHHHHH --- Child Thread ThreadId: ");
 			this.map.ReadFileTuples(this.splitPath);
 
-			System.out.println("***** Read Done ****");
+			// System.out.println("***** Read Done ****");
 			// this.MapReduce.Split("ww");
 			Maps(map);
 			Suffle(map);
-			Reduces();
+
 			// map ordenar palabras lineas
 			// Suffle contar palabras
 
+		}
+	}
+
+	public class Fases_Concurentes_2 implements Runnable {
+		int num_reducer;
+
+		public Fases_Concurentes_2(int num_reducer) {
+			this.num_reducer = num_reducer;
+		}
+
+		@Override
+		public void run() {
+			System.out.println("Fase 2 -->" + Thread.currentThread().getId());
+			Reduces(num_reducer);
 		}
 	}
 
@@ -127,7 +154,7 @@ abstract class MapReduce {
 				if (listOfFiles[i].isFile()) {
 					map[i] = new Map(this);
 					AddMap(map[i]);
-					thr[i] = new Thread(new splitObject(map[i], listOfFiles[i].getAbsolutePath()));
+					thr[i] = new Thread(new Fases_Concurentes_1(map[i], listOfFiles[i].getAbsolutePath()));
 					System.out.println("Processing input file " + listOfFiles[i].getAbsolutePath() + ".");
 					thr[i].start();
 				} else if (listOfFiles[i].isDirectory()) {
@@ -138,17 +165,19 @@ abstract class MapReduce {
 			for (int i = 0; i < listOfFiles.length; i++) {
 				try {
 					thr[i].join();
-					}
-					catch (InterruptedException e) { // Fin //
+				} catch (InterruptedException e) { // Fin //
 				}
-				
-				System.out.println("Is alive thread "+thr[i].isAlive());
+				System.out.println("Thread number " + thr[i].getId() + " is alive: " + thr[i].isAlive());
 			}
 		} else {
 			thr = new Thread[1];
-			thr[0] = new Thread(new splitObject(new Map(this), folder.getAbsolutePath()));
+			thr[0] = new Thread(new Fases_Concurentes_1(new Map(this), folder.getAbsolutePath()));
 			System.out.println("Processing input file " + folder.getAbsolutePath() + ".");
 			thr[0].start();
+			try {
+				thr[1].join();
+			} catch (InterruptedException e) { // Fin //
+			}
 		}
 		return (Error.COk);
 	}
@@ -158,7 +187,6 @@ abstract class MapReduce {
 
 		if (map.Run() != Error.COk)
 			Error.showError("MapReduce::Map Run error.\n");
-		
 
 		return (Error.COk);
 	}
@@ -175,25 +203,31 @@ abstract class MapReduce {
 	private Error Suffle(Map map) {
 
 		for (String key : map.GetOutput().keySet()) {
-		// Calcular a que reducer le corresponde está clave:
-		int r = key.hashCode() % Reducers.size();
+			// Calcular a que reducer le corresponde está clave:
+			// System.out.println("key.hashCode() " + key +" "+ key.hashCode() + "
+			// Reducers.size() " + Reducers.size() + " >>>> "+
+			// Thread.currentThread().getId());
 
-			if (MapReduce.DEBUG)
+			int r = Math.abs(key.hashCode()) % Reducers.size();
+
+			// r no puede ser negativo, ya que el numero de reducer son 0, 1, 2, 3...
+
+			if (MapReduce.DEBUG) { //
 				System.err.println("DEBUG::MapReduce::Suffle merge key " + key + " to reduce " + r);
-
+				// System.out.println("DEBUG::MapReduce::Suffle merge key " + key + " to reduce
+				// " + r + " >>>> " + Thread.currentThread().getId());
 				// Añadir todas las tuplas de la clave al reducer correspondiente.
-				Reducers.get(r).AddInputKeys(key, map.GetOutput().get(key));
 			}
-
+			Reducers.get(r).AddInputKeys(key, map.GetOutput().get(key));
+		}
+		map.GetOutput().clear();
 		return (Error.COk);
 	}
 
 	// Ejecuta cada uno de los Reducers.
-	private Error Reduces() {
-		for (Reduce reduce : Reducers) {
-			if (reduce.Run() != Error.COk)
-				Error.showError("MapReduce::Reduce Run error.\n");
-		}
+	private Error Reduces(int num_reducer) {
+		if (Reducers.get(num_reducer).Run() != Error.COk)
+			Error.showError("MapReduce::Reduce Run error.\n");
 		return (Error.COk);
 	}
 

@@ -1,32 +1,45 @@
 
 import java.util.Collection;
 
+public class WordCountMR extends MapReduce {
 
-public class WordCountMR extends MapReduce 
-{
-
-	public WordCountMR(String[] args) 
-	{
+	public WordCountMR(String[] args) {
+		int nreducers;
 		// Procesar argumentos.
-		if (args.length!=3)
+		if (args.length == 2) {
+			nreducers = 2;
+			System.out.println("Reducers = 2");
+
+		} else if (args.length == 3) {
+			nreducers = Integer.parseInt(args[2]);
+			System.out.println("Reducers = " + Integer.parseInt(args[2]));
+
+		} else {
+			throw new IllegalArgumentException("Illegal command line argument: WordCount <input dir> <ouput dir>.\n");
+		}
+
+		SetInputPath(args[0]);
+		SetOutputPath(args[1]);
+		SetReducers(nreducers);
+		
+		// System.out.println(Integer.parseInt(args[2]));
+		// Procesar argumentos.
+		/*if (args.length!=3)
 			throw new IllegalArgumentException("Illegal command line argument: WordCount <input dir> <ouput dir>.\n");
 	
 		SetInputPath(args[0]);
 		SetOutputPath(args[1]);
-		SetReducers(Integer.parseInt(args[2]));
-
-		System.out.println(Integer.parseInt(args[2]));
+		SetReducers(Integer.parseInt(args[2]));*/
 	}
 
 	// Word Count Map.
 	@Override
-	public Error Map(Map map, MapInputTuple tuple)
-	{
+	public Error Map(Map map, MapInputTuple tuple) {
 		String value = tuple.getValue();
 
-		if (MapReduce.DEBUG) System.err.println("DEBUG::MapWordCount procesing tuple " + tuple.getKey() + " -> "+ tuple.getValue());
-		
-		
+		if (MapReduce.DEBUG)
+			System.err.println("DEBUG::MapWordCount procesing tuple " + tuple.getKey() + " -> " + tuple.getValue());
+
 		// Convertir todos los posibles separadores de palabras a espacios.
 		value = value.replace(":", " ");
 		value = value.replace(".", " ");
@@ -52,33 +65,33 @@ public class WordCountMR extends MapReduce
 		value = value.replace("/", " ");
 
 		// Emit map result (word,'1').
-		for (String word : value.split("\\s+")) 
-	    	map.EmitResult(word,1);
+		for (String word : value.split("\\s+"))
+			map.EmitResult(word, 1);
 
-		return(Error.COk);
+		return (Error.COk);
 	}
-
 
 	// Word Count Reduce.
 	@Override
-	public Error Reduce(Reduce reduce, String key, Collection<Integer> values)
-	{
-		int totalCount=0;
+	public Error Reduce(Reduce reduce, String key, Collection<Integer> values) {
+		int totalCount = 0;
 
-		if (MapReduce.DEBUG) System.err.print("DEBUG::ReduceWordCount key " + key +"s -> ");
+		if (MapReduce.DEBUG)
+			System.err.print("DEBUG::ReduceWordCount key " + key + "s -> ");
 
 		// Procesar todas los valores para esta clave.
-		for(int number : values)
-		{
-			if (MapReduce.DEBUG) System.err.print(" " + number);
-			totalCount +=  number;
+		for (int number : values) {
+			if (MapReduce.DEBUG)
+				System.err.print(" " + number);
+			totalCount += number;
 		}
 
-		if (MapReduce.DEBUG) System.err.println(" ==> " + totalCount);
+		if (MapReduce.DEBUG)
+			System.err.println(" ==> " + totalCount);
 
 		reduce.EmitResult(key, totalCount);
 
-		return(Error.COk);
+		return (Error.COk);
 	}
 
 }
