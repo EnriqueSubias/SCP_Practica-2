@@ -68,7 +68,7 @@ public class Map
 			e.printStackTrace();
 			return(Error.CErrorOpenInputFile);
 		}
-		System.out.println("***** Input Stream Creado **** -->" + Thread.currentThread().getId());
+		//System.out.println("***** Input Stream Creado **** -->" + Thread.currentThread().getId());
 		//Construct BufferedReader from InputStreamReader
 		BufferedReader br = new BufferedReader(new InputStreamReader(fis));
 	 
@@ -76,7 +76,7 @@ public class Map
 		try {
 			while ((line = br.readLine())!=null) 
 			{
-				System.out.println( " # # linea:  -->  "+ line);
+				System.out.println( " # # linea:  -->  "+ line + " >>>> " + Thread.currentThread().getId());
 				//System.err.println("DEBUG::Map input " + Offset + " -> " + line);
 				AddInput(new MapInputTuple(Offset, line));
 			    Offset+=line.length();
@@ -127,7 +127,7 @@ public class Map
 	// Función para escribir un resultado parcial del Map en forma de tupla (key,value)
 	public void EmitResult(String key, int value)
 	{
-		if (MapReduce.DEBUG) System.err.println("DEBUG::Map emit result " + key + " -> " + value);
+		if (/*MapReduce.DEBUG*/true) System.err.println("DEBUG::Map emit result " + key + " -> " + value + " >>>> " + Thread.currentThread().getId());
 		Output.put(key,new Integer(value));
 	}
 

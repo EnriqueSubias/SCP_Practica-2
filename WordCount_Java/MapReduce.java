@@ -3,7 +3,7 @@ import java.util.Collection;
 import java.util.Vector;
 
 abstract class MapReduce {
-	public static final boolean DEBUG = true;
+	public static final boolean DEBUG = false;
 
 	private String InputPath;
 	private String OutputPath;
@@ -17,6 +17,7 @@ abstract class MapReduce {
 		SetInputPath("");
 		SetOutputPath("");
 	}
+
 
 	// Constructor MapReduce: número de reducers a utilizar. Los parámetros de
 	// directorio/fichero entrada
@@ -47,6 +48,7 @@ abstract class MapReduce {
 	}
 
 	public void SetReducers(int nReducers) {
+		System.out.println("HHHHHH" + nReducers);
 		for (int x = 0; x < nReducers; x++) {
 			AddReduce(new Reduce(this, OutputPath + "/result.r" + (x + 1)));
 		}
@@ -99,8 +101,12 @@ abstract class MapReduce {
 
 			System.out.println("***** Read Done ****");
 			// this.MapReduce.Split("ww");
+			Maps(map);
+			Suffle(map);
+			Reduces();
 			// map ordenar palabras lineas
 			// Suffle contar palabras
+
 		}
 	}
 
@@ -136,7 +142,7 @@ abstract class MapReduce {
 					catch (InterruptedException e) { // Fin //
 				}
 				
-				System.out.println(thr[i].isAlive());
+				System.out.println("Is alive thread "+thr[i].isAlive());
 			}
 		} else {
 			thr = new Thread[1];
@@ -148,13 +154,11 @@ abstract class MapReduce {
 	}
 
 	// Ejecuta cada uno de los Maps.
-	private Error Maps() {
-		for (Map map : Mappers) {
-			if (MapReduce.DEBUG)
-				System.err.println("DEBUG::Running Map " + map);
-			if (map.Run() != Error.COk)
-				Error.showError("MapReduce::Map Run error.\n");
-		}
+	private Error Maps(Map map) {
+
+		if (map.Run() != Error.COk)
+			Error.showError("MapReduce::Map Run error.\n");
+		
 
 		return (Error.COk);
 	}
@@ -168,25 +172,18 @@ abstract class MapReduce {
 	// hash como
 	// función de partición, para distribuir las claves entre los posibles reducers.
 	// Utiliza un multimap para realizar la ordenación/unión.
-	private Error Suffle() {
-		for (Map map : Mappers) {
+	private Error Suffle(Map map) {
+
+		for (String key : map.GetOutput().keySet()) {
+		// Calcular a que reducer le corresponde está clave:
+		int r = key.hashCode() % Reducers.size();
+
 			if (MapReduce.DEBUG)
-				map.PrintOutputs();
-
-			for (String key : map.GetOutput().keySet()) {
-				// Calcular a que reducer le corresponde está clave:
-				int r = key.hashCode() % Reducers.size();
-
-				if (MapReduce.DEBUG)
-					System.err.println("DEBUG::MapReduce::Suffle merge key " + key + " to reduce " + r);
+				System.err.println("DEBUG::MapReduce::Suffle merge key " + key + " to reduce " + r);
 
 				// Añadir todas las tuplas de la clave al reducer correspondiente.
 				Reducers.get(r).AddInputKeys(key, map.GetOutput().get(key));
 			}
-
-			// Eliminar todas las salidas.
-			map.GetOutput().clear();
-		}
 
 		return (Error.COk);
 	}
