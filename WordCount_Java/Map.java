@@ -59,7 +59,8 @@ public class Map
 	{
 		long Offset=0;
 		FileInputStream fis;
-		
+		//System.out.println("***** Name File **** -->");
+		System.out.println("***** Name File **** -->"+ fileName);
 		try {
 			fis = new FileInputStream(fileName);
 		} catch (FileNotFoundException e) {
@@ -67,7 +68,7 @@ public class Map
 			e.printStackTrace();
 			return(Error.CErrorOpenInputFile);
 		}
-		 
+		System.out.println("***** Input Stream Creado **** -->" + Thread.currentThread().getId());
 		//Construct BufferedReader from InputStreamReader
 		BufferedReader br = new BufferedReader(new InputStreamReader(fis));
 	 
@@ -75,7 +76,8 @@ public class Map
 		try {
 			while ((line = br.readLine())!=null) 
 			{
-				if (MapReduce.DEBUG) System.err.println("DEBUG::Map input " + Offset + " -> " + line);
+				System.out.println( " # # linea:  -->  "+ line);
+				//System.err.println("DEBUG::Map input " + Offset + " -> " + line);
 				AddInput(new MapInputTuple(Offset, line));
 			    Offset+=line.length();
 			}
@@ -90,7 +92,7 @@ public class Map
 			e.printStackTrace();
 			return(Error.CErrorReadingFile);
 		}
-
+		System.out.println("***** Finalizacion Map thread :  -->" + Thread.currentThread().getId()); //Me vale vergas
 		return(Error.COk);
 	}
 
