@@ -132,7 +132,7 @@ abstract class MapReduce {
 
 		@Override
 		public void run() {
-			System.out.println("Fase 2 -->" + Thread.currentThread().getId());
+			//System.out.println("Fase 2 -->" + Thread.currentThread().getId());
 			Reduces(num_reducer);
 		}
 	}
