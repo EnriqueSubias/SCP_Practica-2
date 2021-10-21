@@ -77,7 +77,7 @@ abstract class MapReduce {
 				thr[i].join();
 			} catch (InterruptedException e) { // Fin //
 			}
-			System.out.println("Thread number " + thr[i].getId() + " is alive: " + thr[i].isAlive());
+			System.out.println("Thread number Fase 2 " + thr[i].getId() + " is alive: " + thr[i].isAlive());
 		}
 
 		// if (Reduces() != Error.COk)
@@ -167,7 +167,7 @@ abstract class MapReduce {
 					thr[i].join();
 				} catch (InterruptedException e) { // Fin //
 				}
-				System.out.println("Thread number " + thr[i].getId() + " is alive: " + thr[i].isAlive());
+				System.out.println("Thread number Fase 1 " + thr[i].getId() + " is alive: " + thr[i].isAlive());
 			}
 		} else {
 			thr = new Thread[1];
