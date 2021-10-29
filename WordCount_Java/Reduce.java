@@ -24,6 +24,7 @@ class Reduce {
 		mapReduce = mapr;
 		try {
 			OutputFile = new PrintWriter(OutputPath);
+			System.out.println("DEBUG::Creating output file " + OutputPath);
 		} catch (FileNotFoundException e) {
 			System.err.println("Reduce::ERROR Open output file " + OutputPath + ".");
 			e.printStackTrace();
@@ -73,7 +74,8 @@ class Reduce {
 
 	// Función para escribir un resulta en el fichero de salida.
 	public void EmitResult(String key, int value) {
-		//System.out.println("Write in document: " + key + " >>>> " + Thread.currentThread().getId());
+		// System.out.println("Write in document: " + key + " >>>> " +
+		// Thread.currentThread().getId());
 		OutputFile.write(key + " " + value + "\n");
 	}
 

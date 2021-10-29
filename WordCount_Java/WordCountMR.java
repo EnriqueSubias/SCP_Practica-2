@@ -5,14 +5,16 @@ public class WordCountMR extends MapReduce {
 
 	public WordCountMR(String[] args) {
 		int nreducers;
+		System.out.println("\n\033[3;104;30m ---- Inicio del programa ---- \033[0m\n");
+
 		// Procesar argumentos.
 		if (args.length == 2) {
 			nreducers = 2;
-			System.out.println("Reducers = 2");
+			System.out.println("\u001B[32m-> Number of reducers set to 2 by default\033[0m");
 
 		} else if (args.length == 3) {
 			nreducers = Integer.parseInt(args[2]);
-			System.out.println("Reducers = " + Integer.parseInt(args[2]));
+			System.out.println("\u001B[32m-> Number of reducers: " + Integer.parseInt(args[2]) + "\033[0m");
 
 		} else {
 			throw new IllegalArgumentException("Illegal command line argument: WordCount <input dir> <ouput dir>.\n");
@@ -21,15 +23,17 @@ public class WordCountMR extends MapReduce {
 		SetInputPath(args[0]);
 		SetOutputPath(args[1]);
 		SetReducers(nreducers);
-		
+
 		// System.out.println(Integer.parseInt(args[2]));
 		// Procesar argumentos.
-		/*if (args.length!=3)
-			throw new IllegalArgumentException("Illegal command line argument: WordCount <input dir> <ouput dir>.\n");
-	
-		SetInputPath(args[0]);
-		SetOutputPath(args[1]);
-		SetReducers(Integer.parseInt(args[2]));*/
+		/*
+		 * if (args.length!=3) throw new
+		 * IllegalArgumentException("Illegal command line argument: WordCount <input dir> <ouput dir>.\n"
+		 * );
+		 * 
+		 * SetInputPath(args[0]); SetOutputPath(args[1]);
+		 * SetReducers(Integer.parseInt(args[2]));
+		 */
 	}
 
 	// Word Count Map.

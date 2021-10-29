@@ -55,10 +55,51 @@ abstract class MapReduce {
 	// reduce.
 	public Error Run() {
 
-		if (Split(InputPath) != Error.COk)
-			Error.showError("MapReduce::Run-Error Split");
-			
+		Thread thr1[];
+		File folder = new File(InputPath);
+		File[] listOfFiles = folder.listFiles();
+		thr1 = new Thread[listOfFiles.length];
+		Map map[] = new Map[listOfFiles.length];
+		nfiles = listOfFiles.length;
+		System.out.println("\n\u001B[32m-> Number of input files: " + nfiles + "\033[0m");
 
+		// if (Split(InputPath) != Error.COk)
+		// Error.showError("MapReduce::Run-Error Split");
+
+		if (folder.isDirectory()) {
+			for (int i = 0; i < listOfFiles.length; i++) {
+				if (listOfFiles[i].isFile()) {
+					System.out.println("Input path " + listOfFiles[i].getPath());
+					try {
+						map[i] = new Map(this);
+						thr1[i] = new Thread(new Fases_Concurentes_1(map[i], listOfFiles[i].getAbsolutePath()));
+						thr1[i].start();
+					} catch (RuntimeException e) { // Fin //
+						Error.showError("Error Create thread " + e + " fase 1");
+					}
+				} else if (listOfFiles[i].isDirectory()) {
+					System.out.println("Directory " + listOfFiles[i].getName());
+				}
+			}
+			System.out.println("\n\u001B[32mProcesando Fase 1 con " + nfiles + " threads...\033[0m");
+			for (int i = 0; i < listOfFiles.length; i++) {
+				try {
+					thr1[i].join();
+				} catch (InterruptedException e) { // Fin //
+					Error.showError("Error Join thread " + e + " fase 1");
+				}
+			}
+		} else {
+			thr1 = new Thread[1];
+			thr1[0] = new Thread(new Fases_Concurentes_1(new Map(this), folder.getAbsolutePath()));
+			System.out.println("Processing input file " + folder.getAbsolutePath() + ".");
+			thr1[0].start();
+			try {
+				thr1[1].join();
+			} catch (InterruptedException e) { // Fin //
+				Error.showError("Error Join thread " + e + " fase 1");
+			}
+		}
 		// if (Maps() != Error.COk)
 		// Error.showError("MapReduce::Run-Error Map");
 
@@ -66,34 +107,27 @@ abstract class MapReduce {
 		// Error.showError("MapReduce::Run-Error Merge");
 		Thread thr[];
 		thr = new Thread[Reducers.size()];
+		System.out.println("\n\u001B[32mProcesando Fase 2 con " + Reducers.size() + " threads...\033[0m");
 
 		for (int i = 0; i < Reducers.size(); i++) {
-			thr[i] = new Thread(new Fases_Concurentes_2(i));
-			thr[i].start();
+			try {
+				thr[i] = new Thread(new Fases_Concurentes_2(i));
+				thr[i].start();
+			} catch (RuntimeException e) { // Fin //
+				Error.showError("Error Create thread " + e + " fase 2");
+			}
 		}
 
 		for (int i = 0; i < Reducers.size(); i++) {
 			try {
 				thr[i].join();
 			} catch (InterruptedException e) { // Fin //
+				Error.showError("Error Join thread " + e + " fase 2");
 			}
-			System.out.println("Thread number Fase 2 " + thr[i].getId() + " is alive: " + thr[i].isAlive());
 		}
-
 		// if (Reduces() != Error.COk)
 		// Error.showError("MapReduce::Run-Error Reduce");
-
-		/*
-		 * //Primeros threads for (int i = 0; i < nfiles; i++) { // creat thread
-		 * thr[i]=new Thread(new splitObject(map[i], listOfFiles[i].getAbsolutePath()));
-		 * 
-		 * 
-		 * } for (int i = 0; i < nfiles; i++) { // parar thread }
-		 * 
-		 * // Segundos threads for (int i = 0; i < nreducers; i++) { // creat thread }
-		 * for (int i = 0; i < nreducers; i++) { // parar thread }
-		 */
-
+		System.out.println("\n");
 		return (Error.COk);
 	}
 
@@ -108,18 +142,22 @@ abstract class MapReduce {
 
 		@Override
 		public void run() {
-			// System.out.println("***** Test ****");
-			// System.out.println("HHHHHHHHH --- Child Thread ThreadId: ");
-			this.map.ReadFileTuples(this.splitPath);
+			System.out.println("Split: thread " + Thread.currentThread().getId());
+			if (Split(this.splitPath, this.map) == Error.COk) {
+				System.out.println("Map: thread " + Thread.currentThread().getId());
+				if (Maps(map) == Error.COk) {
+					System.out.println("Suffle: thread " + Thread.currentThread().getId());
+					if (Suffle(map) == Error.COk) {
 
-			// System.out.println("***** Read Done ****");
-			// this.MapReduce.Split("ww");
-			Maps(map);
-			Suffle(map);
-
-			// map ordenar palabras lineas
-			// Suffle contar palabras
-
+					} else {
+						Error.showError("MapReduce::Suffle run error");
+					}
+				} else {
+					Error.showError("MapReduce::Maps run error");
+				}
+			} else {
+				Error.showError("MapReduce::Split run error");
+			}
 		}
 	}
 
@@ -132,14 +170,21 @@ abstract class MapReduce {
 
 		@Override
 		public void run() {
-			//System.out.println("Fase 2 -->" + Thread.currentThread().getId());
-			Reduces(num_reducer);
+			System.out.println("Reduces: thread " + Thread.currentThread().getId());
+			if (Reduces(num_reducer) != Error.COk)
+				Error.showError("MapReduce::Reduce run error");
 		}
 	}
 
 	// Genera y lee diferentes splits: 1 split por fichero.
 	// Versión secuencial: asume que un único Map va a procesar todos los splits.
-	private Error Split(String input) {
+	private Error Split(String input, Map map) {
+		if (map.ReadFileTuples(input) != Error.COk)
+			Error.showError("MapReduce::Split run error");
+		return (Error.COk);
+	}
+
+	private Error SplitDefualt(String input) {
 		File folder = new File(input);
 		Thread thr[];
 
@@ -149,7 +194,7 @@ abstract class MapReduce {
 			Map map[] = new Map[listOfFiles.length];
 			nfiles = listOfFiles.length;
 			System.out.println("nfiles: " + nfiles);
-			/* Read all the files and directories within directory */
+			// Read all the files and directories within directory
 			for (int i = 0; i < listOfFiles.length; i++) {
 				if (listOfFiles[i].isFile()) {
 					map[i] = new Map(this);
@@ -169,6 +214,8 @@ abstract class MapReduce {
 				}
 				System.out.println("Thread number Fase 1 " + thr[i].getId() + " is alive: " + thr[i].isAlive());
 			}
+			// Sirve para crear solo un thread si la ruta es un fichero unico y no
+			// undirectorio con multiples ficheros
 		} else {
 			thr = new Thread[1];
 			thr[0] = new Thread(new Fases_Concurentes_1(new Map(this), folder.getAbsolutePath()));
@@ -184,10 +231,8 @@ abstract class MapReduce {
 
 	// Ejecuta cada uno de los Maps.
 	private Error Maps(Map map) {
-
 		if (map.Run() != Error.COk)
 			Error.showError("MapReduce::Map Run error.\n");
-
 		return (Error.COk);
 	}
 
