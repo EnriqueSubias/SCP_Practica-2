@@ -55,12 +55,42 @@ abstract class MapReduce {
 	// reduce.
 	public Error Run() {
 
-		Thread thr1[];
 		File folder = new File(InputPath);
 		File[] listOfFiles = folder.listFiles();
+		nfiles = listOfFiles.length;
+
+		int nSmallFiles = 0;
+		int nBigFiles = 0;
+		String smallFiles = "";
+		String bigFiles = "";
+		for (int i = 0; i < listOfFiles.length; i++) {
+			if (listOfFiles[i].length() > 8000000) {
+				int segments = (int) (listOfFiles[i].length() / 8000000);
+				// long segments = (long) (24300000 / 8000000);
+				// double segments = Math.round(listOfFiles[i].length() / 8000000.0);
+				// double segments2 = Math.floor(listOfFiles[i].length()/ 8000000.0);
+				// System.out.println("Segments: " + segments);
+				// System.out.println("Segments: " + segments2);
+				bigFiles += segments + 1; // +1 para aproximar por arriba
+				bigFiles = bigFiles + "---" + listOfFiles[i].getPath();
+				// System.out.println("big: " + bigFiles);
+			} else {
+				nSmallFiles++;
+				smallFiles = smallFiles + "---" + listOfFiles[i].getPath();
+				// System.out.println("small: " + smallFiles);
+			}
+		}
+		String[] listOfSmallFiles = smallFiles.split("---");
+		String[] listOfBigFiles = bigFiles.split("---");
+
+		System.out.println("big: " + listOfSmallFiles.toString());
+		System.out.println("small: " + listOfBigFiles.toString());
+		Error.showError("Error Create");
+
+		Thread thr1[];
 		thr1 = new Thread[listOfFiles.length];
 		Map map[] = new Map[listOfFiles.length];
-		nfiles = listOfFiles.length;
+
 		System.out.println("\n\u001B[32m-> Number of input files: " + nfiles + "\033[0m");
 
 		// if (Split(InputPath) != Error.COk)
@@ -68,15 +98,30 @@ abstract class MapReduce {
 
 		if (folder.isDirectory()) {
 			for (int i = 0; i < listOfFiles.length; i++) {
-				if (listOfFiles[i].isFile()) {
+				if (listOfSmallFiles[i].isFile()) {
 					System.out.println("Input path " + listOfFiles[i].getPath());
-					try {
-						map[i] = new Map(this);
-						thr1[i] = new Thread(new Fases_Concurentes_1(map[i], listOfFiles[i].getAbsolutePath()));
-						thr1[i].start();
-					} catch (RuntimeException e) { // Fin //
-						Error.showError("Error Create thread " + e + " fase 1");
-					}
+					System.out.println("Size: " + listOfFiles[i].length() + listOfFiles[i].getPath());
+					if (listOfFiles[i].length() > 8000000) {
+						int segments = (int) (listOfFiles[i].length() / 8000000) + 1;
+						for (int j = 0; i < segments; i++) {
+							try {
+								map[i] = new Map(this);
+								thr1[i] = new Thread(new Fases_Concurentes_1(map[i], listOfFiles[i].getAbsolutePath()));
+								thr1[i].start();
+							} catch (RuntimeException e) { // Fin //
+								Error.showError("Error Create thread " + e + " fase 1");
+							}
+						}
+
+					} else {
+						try {
+							map[i] = new Map(this);
+							thr1[i] = new Thread(new Fases_Concurentes_1(map[i], listOfFiles[i].getAbsolutePath()));
+							thr1[i].start();
+						} catch (RuntimeException e) { // Fin //
+							Error.showError("Error Create thread " + e + " fase 1");
+						}
+					}		
 				} else if (listOfFiles[i].isDirectory()) {
 					System.out.println("Directory " + listOfFiles[i].getName());
 				}
@@ -100,6 +145,27 @@ abstract class MapReduce {
 				Error.showError("Error Join thread " + e + " fase 1");
 			}
 		}
+
+		/*
+		 * if (folder.isDirectory()) { for (int i = 0; i < listOfFiles.length; i++) { if
+		 * (listOfFiles[i].isFile()) { System.out.println("Input path " +
+		 * listOfFiles[i].getPath()); System.out.println("Size: " +
+		 * listOfFiles[i].length() + listOfFiles[i].getPath()); try { map[i] = new
+		 * Map(this); thr1[i] = new Thread(new Fases_Concurentes_1(map[i],
+		 * listOfFiles[i].getAbsolutePath())); thr1[i].start(); } catch
+		 * (RuntimeException e) { // Fin // Error.showError("Error Create thread " + e +
+		 * " fase 1"); } } else if (listOfFiles[i].isDirectory()) {
+		 * System.out.println("Directory " + listOfFiles[i].getName()); } }
+		 * System.out.println("\n\u001B[32mProcesando Fase 1 con " + nfiles +
+		 * " threads...\033[0m"); for (int i = 0; i < listOfFiles.length; i++) { try {
+		 * thr1[i].join(); } catch (InterruptedException e) { // Fin //
+		 * Error.showError("Error Join thread " + e + " fase 1"); } } } else { thr1 =
+		 * new Thread[1]; thr1[0] = new Thread(new Fases_Concurentes_1(new Map(this),
+		 * folder.getAbsolutePath())); System.out.println("Processing input file " +
+		 * folder.getAbsolutePath() + "."); thr1[0].start(); try { thr1[1].join(); }
+		 * catch (InterruptedException e) { // Fin //
+		 * Error.showError("Error Join thread " + e + " fase 1"); } }
+		 */
 		// if (Maps() != Error.COk)
 		// Error.showError("MapReduce::Run-Error Map");
 
